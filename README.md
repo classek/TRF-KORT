@@ -8,7 +8,7 @@ Vissa fält lämnas tomma för manuell ifyllande och signering.
 
 ## Funktioner
 - Grafiskt gränssnitt (Tkinter) för enkel inmatning
-- Genererar en **juridiskt användbar PDF-mall**
+- Genererar en **juridiskt användbar PDF**
 - Fyll i:
   - Fordonsägare (namn, personnummer/org.nr, kontakt information)
   - Förare (namn, personnummer, kontakt)
