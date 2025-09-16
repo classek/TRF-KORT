@@ -1,22 +1,25 @@
 TRF-kort Generator
 
-Ett enkelt Python-verktyg med GUI för att skapa **TRF-kort (Tillstånd och Reglering av Fordon)** som PDF.  
-Appen gör det smidigt att fylla i fordonsägare, förare och fordonsinformation, och genererar en färdig PDF-mall.  
-Vissa fält lämnas tomma för manuell ifyllande och signering.
+# TRF-kort Generator
 
----
+Detta projekt är ett Python-baserat verktyg som genererar PDF-dokument för utlåning av fordon mellan två parter. 
+Dokumenten innehåller automatiskt datum, ort, namn och underskriftsfält samt en juridisk klausul för att förtydliga 
+att avtalet är bindande när båda parter signerat.
 
 ## Funktioner
-- Grafiskt gränssnitt (Tkinter) för enkel inmatning
-- Genererar en **juridiskt användbar PDF**
-- Fyll i:
-  - Fordonsägare (namn, personnummer/org.nr, kontakt information)
-  - Förare (namn, personnummer, kontakt)
-  - Fordonsinformation (registreringsnummer, märke & modell)
-- Lämnar tomma fält för:
+- Skapar ett PDF-dokument i A4-format
+- Automatiskt ifyllt datum och ort
+- Underskriftsfält för både ägare och förare
+- Namnförtydligande under underskriftslinjerna
+- Juridisk text i foten:
+  - "Detta dokument reglerar utlåning av fordon mellan ovanstående parter."
+  - "Avtalet är giltigt endast när båda parter har undertecknat."
+- Anpassat avstånd i botten för tydliga signaturer
 
-    Ansvars- och kostnadsfördelning
-  - Start- och slutdatum för tillstånd
-  - Underskrifter från både fordonsägare och förare
- 
-  -   Är beroende av reportlab och Tkinter
+## Krav
+- Python 3.8 eller senare
+- [ReportLab](https://pypi.org/project/reportlab/)
+
+Installera beroenden:
+```bash
+pip install reportlab
