@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TRF-kort Generator — Web</title>
+  <style>
+    body { font-family: Inter, "Helvetica Neue", Arial, sans-serif; background:#f5f7fa; color:#222; margin:0; padding:24px; }
+    .container { max-width:900px; margin:12px auto; background:white; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.08); padding:20px; }
+    h1 { margin:0 0 8px 0; font-size:22px; color:#0b57a4; }
+    p.lead { margin:0 0 18px 0; color:#444; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    label { display:block; font-size:13px; margin-bottom:6px; color:#333; }
+    input[type="text"], input[type="date"], select { width:100%; padding:8px 10px; border:1px solid #d7dde6; border-radius:6px; box-sizing:border-box; font-size:14px; }
+    .full { grid-column: 1 / -1; }
+    fieldset { border:1px solid #eef2f6; padding:10px 12px; border-radius:6px; margin-bottom:12px; }
+    legend { font-weight:600; padding:0 6px; font-size:14px; color:#333; }
+    .radio-row { display:flex; gap:12px; align-items:center; margin-top:6px; }
+    .btn { display:inline-block; background:#007ACC; color:white; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; }
+    .btn:active { transform:translateY(1px); }
+    .footer-note { font-size:13px; color:#666; margin-top:12px; }
+    .small { font-size:13px; color:#666; }
+    .flex-between { display:flex; justify-content:space-between; gap:12px; }
+    .note { font-size:12px; color:#888; margin-top:6px; }
+    @media (max-width:700px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>TRF-kort Generator</h1>
+    <p class="lead">Fyll i fälten och klicka på <strong>Skapa PDF</strong>. Underskriftslinjer, ort/datum och namnförtydligande placeras automatiskt under signaturlinjerna.</p>
+
+    <form id="trfForm">
+      <div class="grid">
+        <div>
+          <label for="owner">Ägare</label>
+          <input id="owner" type="text" placeholder="Namn" required />
+        </div>
+        <div>
+          <label for="owner_id">Ägare (Personnummer)</label>
+          <input id="owner_id" type="text" placeholder="YYYYMMDD-XXXX" required />
+        </div>
+
+        <div>
+          <label for="driver">Förare</label>
+          <input id="driver" type="text" placeholder="Namn" required />
+        </div>
+        <div>
+          <label for="driver_id">Förare (Personnummer)</label>
+          <input id="driver_id" type="text" placeholder="YYYYMMDD-XXXX" required />
+        </div>
+
+        <div>
+          <label for="vehicle">Fordon (Märke/Modell)</label>
+          <input id="vehicle" type="text" placeholder="Ex: Volvo V70" required />
+        </div>
+        <div>
+          <label for="regnr">Registreringsnummer</label>
+          <input id="regnr" type="text" placeholder="ABC123" required />
+        </div>
+
+        <div>
+          <label for="end_date">Avtalets slutdatum</label>
+          <input id="end_date" type="date" required />
+        </div>
+        <div>
+          <label for="location">Ort för underskrift</label>
+          <input id="location" type="text" placeholder="Ex: Stockholm" required />
+        </div>
+
+        <fieldset class="full">
+          <legend>Ansvarsfördelning</legend>
+          <div style="display:grid; gap:8px;">
+            <div class="flex-between">
+              <div style="flex:1">
+                <label>Parkeringsavgifter/böter</label>
+                <div class="radio-row">
+                  <label><input type="radio" name="pavg" value="Ägare" checked /> Ägare</label>
+                  <label><input type="radio" name="pavg" value="Förare" /> Förare</label>
+                </div>
+              </div>
+              <div style="flex:1">
+                <label>Trängselskatt/vägavgifter</label>
+                <div class="radio-row">
+                  <label><input type="radio" name="trang" value="Ägare" checked /> Ägare</label>
+                  <label><input type="radio" name="trang" value="Förare" /> Förare</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex-between">
+              <div style="flex:1">
+                <label>Självrisk vid skada</label>
+                <div class="radio-row">
+                  <label><input type="radio" name="sjalvrisk" value="Ägare" checked /> Ägare</label>
+                  <label><input type="radio" name="sjalvrisk" value="Förare" /> Förare</label>
+                </div>
+              </div>
+              <div style="flex:1">
+                <label>Fordonsskatt</label>
+                <div class="radio-row">
+                  <label><input type="radio" name="skatt" value="Ägare" checked /> Ägare</label>
+                  <label><input type="radio" name="skatt" value="Förare" /> Förare</label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" id="generateBtn" class="btn">Skapa PDF</button>
+        <button type="button" id="downloadSample" class="btn" style="background:#2d9f4a">Hämta exempel-PDF</button>
+        <div style="flex:1"></div>
+      </div>
+      <p class="note">PDF genereras i webbläsaren och laddas ner automatiskt. Inget skickas till server.</p>
+    </form>
+
+    <p class="footer-note">Inga uppgifter sparas utan försvinner när du stänger ner denna sida.</p>
+  </div>
+
+<script>
+  (function(){
+    // jsPDF import via UMD namespace
+    const { jsPDF } = window.jspdf;
+
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadSample = document.getElementById('downloadSample');
+
+    function sanitizeFilename(s) {
+      return s.replace(/[^A-Za-z0-9_\-åäöÅÄÖ ]/g, '').trim().replace(/\s+/g, '_') || 'trf';
+    }
+
+    function getRadioValue(name) {
+      const el = document.querySelector('input[name="'+name+'"]:checked');
+      return el ? el.value : '';
+    }
+
+    function mmToPt(mm){ return mm * 2.83464567; } // not used directly but kept for reference
+
+    function buildPdf(formData){
+      // A4 in jsPDF default unit 'mm'
+      const doc = new jsPDF({ unit: 'mm', format:'a4' });
+      const pageW = 210;
+      const pageH = 297;
+
+      const left = 20;   // mm
+      const right = 20;
+      const top = 20;
+      const bottom = 30; // larger bottom margin for luft
+
+      const contentW = pageW - left - right;
+
+      // Colors and fonts
+      doc.setTextColor(47,79,79); // dark slate gray RGB
+
+      // Title
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(20);
+      doc.text("TRF-Kort", pageW/2, top, { align: 'center' });
+
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(10);
+      doc.text("Avtal om tillfällig överlåtelse av fordon", pageW/2, top + 6, { align: 'center' });
+
+      // start position for content
+      let y = top + 18;
+
+      // Section 1 header
+      doc.setFontSize(13);
+      doc.setFont('helvetica','bold');
+      doc.text("1. Parter, Fordon och Period", left, y);
+      y += 4;
+      doc.setDrawColor(200);
+      doc.line(left, y, pageW - right, y);
+      y += 6;
+
+      // Info block (two columns)
+      doc.setFontSize(11);
+      doc.setFont('helvetica','bold');
+      const labelW = 48;
+      const valueX = left + labelW;
+
+      doc.text("Ägare:", left, y);
+      doc.setFont('helvetica','normal');
+      doc.text(formData.owner + " (" + formData.owner_id + ")", valueX, y);
+      y += 7;
+
+      doc.setFont('helvetica','bold');
+      doc.text("Brukare/Förare:", left, y);
+      doc.setFont('helvetica','normal');
+      doc.text(formData.driver + " (" + formData.driver_id + ")", valueX, y);
+      y += 7;
+
+      doc.setFont('helvetica','bold');
+      doc.text("Fordon:", left, y);
+      doc.setFont('helvetica','normal');
+      doc.text(formData.vehicle, valueX, y);
+      y += 7;
+
+      doc.setFont('helvetica','bold');
+      doc.text("Registreringsnummer:", left, y);
+      doc.setFont('helvetica','normal');
+      doc.text(formData.regnr.toUpperCase(), valueX, y);
+      y += 7;
+
+      doc.setFont('helvetica','bold');
+      doc.text("Avtalsperiod:", left, y);
+      doc.setFont('helvetica','normal');
+      const fromDate = new Date().toISOString().slice(0,10);
+      doc.text("Fr.o.m. " + fromDate + " till t.o.m. " + formData.end_date, valueX, y);
+      y += 10;
+
+      // Section 2 header
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(13);
+      doc.text("2. Ansvars- och kostnadsfördelning", left, y);
+      y += 4;
+      doc.setDrawColor(200);
+      doc.line(left, y, pageW - right, y);
+      y += 6;
+
+      // small table-like layout for responsibilities
+      doc.setFontSize(11);
+      const col1 = left;
+      const col2 = left + 85;
+      const col3 = left + 130;
+
+      doc.setFont('helvetica','bold');
+      doc.text("Kostnad/Ansvar", col1, y);
+      doc.text("Ägare", col2, y);
+      doc.text("Förare", col3, y);
+      y += 6;
+
+      doc.setFont('helvetica','normal');
+      function drawResp(label, key) {
+        doc.text(label, col1, y);
+        const ownerMark = (formData[key] === 'Ägare') ? 'X' : '';
+        const driverMark = (formData[key] === 'Förare') ? 'X' : '';
+        doc.text(ownerMark, col2, y);
+        doc.text(driverMark, col3, y);
+        y += 6;
+      }
+      drawResp('Parkeringsavgifter/böter', 'pavg');
+      drawResp('Trängselskatt/vägavgifter', 'trang');
+      drawResp('Självrisk vid skada', 'sjalvrisk');
+      drawResp('Fordonsskatt', 'skatt');
+      y += 6;
+
+      // Determine signature area height in mm
+      const sigAreaHeight = 60; // mm
+      // if not enough space on page, add new page
+      if (y + sigAreaHeight + bottom > pageH) {
+        doc.addPage();
+        y = top;
+      }
+
+      // Signature columns (two columns)
+      const gap = 12;
+      const colWidth = (contentW - gap) / 2;
+      const leftColX = left;
+      const rightColX = left + colWidth + gap;
+
+      // Where to draw the sign line (y_line)
+      const y_line = y + 18; // a bit of space before line
+      const linePadding = 8; // padding from edges of columns
+
+      // Draw lines
+      doc.setDrawColor(60);
+      doc.setLineWidth(0.5);
+      doc.line(leftColX + linePadding, y_line, leftColX + colWidth - linePadding, y_line); // owner sig line
+      doc.line(rightColX + linePadding, y_line, rightColX + colWidth - linePadding, y_line); // driver sig line
+
+      // Under lines: Ort och datum + Namnförtydligande
+      doc.setFontSize(10);
+      doc.setFont('helvetica','normal');
+
+      const today = new Date().toISOString().slice(0,10);
+      const locationText = formData.location || "__________________________";
+
+      const ownerOrtDatum = "Ort och datum: " + locationText + ", " + today;
+      const ownerNamn    = "Namnförtydligande: " + formData.owner;
+
+      const driverOrtDatum = "Ort och datum: " + locationText + ", " + today;
+      const driverNamn     = "Namnförtydligande: " + formData.driver;
+
+      doc.text(ownerOrtDatum, leftColX + linePadding, y_line + 8);
+      doc.text(ownerNamn, leftColX + linePadding, y_line + 14);
+
+      doc.text(driverOrtDatum, rightColX + linePadding, y_line + 8);
+      doc.text(driverNamn, rightColX + linePadding, y_line + 14);
+
+      // Footer clause (placed with safe margin above bottom)
+      const footerY = pageH - bottom + 8; // slightly above bottom margin
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.setFont('helvetica','italic');
+      doc.text("Detta dokument reglerar utlåning av fordon mellan ovanstående parter.", pageW/2, footerY, { align: 'center' });
+      doc.text("Avtalet är giltigt endast när båda parter har undertecknat och bekräftat villkoren ovan.", pageW/2, footerY + 5, { align: 'center' });
+      doc.setTextColor(47,79,79);
+
+      return doc;
+    }
+
+    function collectForm(){
+      const form = document.getElementById('trfForm');
+      const data = {
+        owner: document.getElementById('owner').value.trim(),
+        owner_id: document.getElementById('owner_id').value.trim(),
+        driver: document.getElementById('driver').value.trim(),
+        driver_id: document.getElementById('driver_id').value.trim(),
+        vehicle: document.getElementById('vehicle').value.trim(),
+        regnr: document.getElementById('regnr').value.trim(),
+        end_date: document.getElementById('end_date').value,
+        location: document.getElementById('location').value.trim(),
+        pavg: getRadioValue('pavg'),
+        trang: getRadioValue('trang'),
+        sjalvrisk: getRadioValue('sjalvrisk'),
+        skatt: getRadioValue('skatt')
+      };
+      return data;
+    }
+
+    function getRadioValue(name){
+      const el = document.querySelector('input[name="'+name+'"]:checked');
+      return el ? el.value : '';
+    }
+
+    generateBtn.addEventListener('click', function(){
+      const data = collectForm();
+      // simple validation
+      const required = ['owner','owner_id','driver','driver_id','vehicle','regnr','end_date','location'];
+      for (let k of required){
+        if (!data[k]){
+          alert('Var vänlig fyll i alla fält innan du skapar PDF:en.');
+          return;
+        }
+      }
+
+      // create pdf and save
+      const doc = buildPdf(data);
+      const safe = sanitizeFilename(data.owner) + '_' + sanitizeFilename(data.regnr);
+      const filename = `TRF-kort_${safe}.pdf`;
+      doc.save(filename);
+    });
+
+    // Example PDF with sample data for testing
+    downloadSample.addEventListener('click', function(){
+      const sample = {
+        owner: "Anna Andersson",
+        owner_id: "19800101-1234",
+        driver: "Erik Svensson",
+        driver_id: "19900303-2345",
+        vehicle: "Volvo V70",
+        regnr: "ABC123",
+        end_date: "2025-12-31",
+        location: "Hässleholm",
+        pavg: "Ägare",
+        trang: "Förare",
+        sjalvrisk: "Förare",
+        skatt: "Ägare"
+      };
+      const doc = buildPdf(sample);
+      doc.save('TRF-kort_exempel.pdf');
+    });
+
+  })();
+</script>
+
+</body>
+</html>
